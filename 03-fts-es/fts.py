@@ -25,7 +25,8 @@ es.indices.create(
                     "cat_synonyms": {
                         "type": "synonym",
                         "synonyms": [
-                            "cat, kitten, kittens, cats"
+                            "cat, kitten",
+                            "wine, water"
                         ]
                     },
                     "english_stemmer": {

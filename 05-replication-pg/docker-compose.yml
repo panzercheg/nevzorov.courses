@@ -1,39 +1,60 @@
-version: '2'
-
 services:
   postgresql-master:
-    image: 'docker.io/bitnami/postgresql:11-debian-10'
-    ports:
-      - '5432:5432'
+    image: bitnami/postgresql:16
+    ports: ["5432:5432"]
     volumes:
-      - 'postgresql_master_data:/bitnami/postgresql'
+      - postgresql_master_data:/bitnami/postgresql
     environment:
-      - POSTGRESQL_PGAUDIT_LOG=READ,WRITE
-      - POSTGRESQL_LOG_HOSTNAME=true
+      # --- Авторизация ---
+      - ALLOW_EMPTY_PASSWORD=yes                 # пустой пароль у postgres
+      - POSTGRESQL_DATABASE=my_database
+      # --- Репликация ---
       - POSTGRESQL_REPLICATION_MODE=master
       - POSTGRESQL_REPLICATION_USER=repl_user
       - POSTGRESQL_REPLICATION_PASSWORD=repl_password
-      - POSTGRESQL_USERNAME=postgres
-      - POSTGRESQL_DATABASE=my_database
-      - ALLOW_EMPTY_PASSWORD=yes
-  
-  postgresql-slave:
-    image: 'docker.io/bitnami/postgresql:11-debian-10'
-    ports:
-      - '5433:5432'
-    depends_on:
-      - postgresql-master
-    environment:
-      - POSTGRESQL_USERNAME=postgres
-      - POSTGRESQL_PASSWORD=my_password
-      - POSTGRESQL_MASTER_HOST=postgresql-master
+      # --- Логи ---
       - POSTGRESQL_PGAUDIT_LOG=READ,WRITE
       - POSTGRESQL_LOG_HOSTNAME=true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1 -d postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  postgresql-slave:
+    image: bitnami/postgresql:16
+    ports: ["5433:5432"]
+    depends_on:
+      postgresql-master:
+        condition: service_healthy
+    volumes:
+      - postgresql_slave_data:/bitnami/postgresql
+    environment:
+      # --- Авторизация ---
+      - ALLOW_EMPTY_PASSWORD=yes
+      # --- Репликация ---
       - POSTGRESQL_REPLICATION_MODE=slave
       - POSTGRESQL_REPLICATION_USER=repl_user
       - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=postgresql-master
       - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      # --- Логи ---
+      - POSTGRESQL_PGAUDIT_LOG=READ,WRITE
+      - POSTGRESQL_LOG_HOSTNAME=true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1 -d postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
 volumes:
   postgresql_master_data:
-    driver: local
+  postgresql_slave_data:
+
+# PGPASSWORD= psql -h 127.0.0.1 -p 5432 -U postgres -d my_database
+# SELECT pg_is_in_recovery(); 
+# SELECT pid, client_addr, state, sync_state, sent_lsn, write_lsn, flush_lsn, replay_lsn FROM pg_stat_replication;
+
+# PGPASSWORD= psql -h 127.0.0.1 -p 5433 -U postgres -d my_database
+# SELECT pg_is_in_recovery(); 
+# SELECT pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp();
