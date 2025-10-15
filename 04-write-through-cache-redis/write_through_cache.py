@@ -3,13 +3,12 @@ import psycopg2
 import redis
 import random
 import time
+import os
 
 DB_NAME = "testdb"
 DB_USER = "test"
 DB_PASSWORD = "test"
-DB_HOST = "localhost"
 DB_PORT = 6432
-REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 DB_BATCH = 1000
 
@@ -65,6 +64,9 @@ def cache_lookup_test(cur, r, key_range, label):
     print(f"{label}: Redis hits: {hits}, misses (found in Postgres): {misses}, total: {N_LOOKUPS}")
 
 def main():
+    default_host = "localhost" if os.getenv("CODESPACES") == "true" else "127.0.0.1"
+    DB_HOST = os.getenv("DB_HOST", default_host)
+    REDIS_HOST = os.getenv("REDIS_HOST", default_host)
     conn = psycopg2.connect(
         dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT
     )

@@ -1,7 +1,6 @@
 DB_NAME = "testdb"
 DB_USER = "test"
 DB_PASSWORD = "test"
-DB_HOST = "localhost"
 DB_PORT = 6432
 DB_BATCH = 10000
 
@@ -27,6 +26,8 @@ def benchmark_search(cur):
     return total / 100
 
 def main():
+    default_host = "localhost" if os.getenv("CODESPACES") == "true" else "127.0.0.1"
+    DB_HOST = os.getenv("DB_HOST", default_host)
     conn = psycopg2.connect(
         dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT
     )

@@ -1,14 +1,34 @@
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 import time
+import os
 
-es = Elasticsearch(
-    "http://localhost:9200",
-    headers={
-        "Accept": "application/vnd.elasticsearch+json; compatible-with=8",
-        "Content-Type": "application/vnd.elasticsearch+json; compatible-with=8"
-    }
-)
+default_host = "localhost" if os.getenv("CODESPACES") == "true" else "127.0.0.1"
+ES_HOST = os.getenv("ES_HOST", default_host)
+
+# Add waiting
+
+def wait_for_elasticsearch(max_retries=10, delay=10):
+    for attempt in range(max_retries):
+        try:
+            es = Elasticsearch(
+                f"http://{ES_HOST}:9200",
+                headers={
+                    "Accept": "application/vnd.elasticsearch+json; compatible-with=8",
+                    "Content-Type": "application/vnd.elasticsearch+json; compatible-with=8"
+                },
+                request_timeout=5
+            )
+            if es.ping():
+                return es
+        except ConnectionError:
+            pass
+
+        print(f"Ожидание Elasticsearch... попытка {attempt + 1}/{max_retries}")
+        if attempt < max_retries - 1:
+            time.sleep(delay)
+
+es = wait_for_elasticsearch(max_retries=10, delay=10)
 INDEX = "test_texts"
 
 # Delete if exists

@@ -1,6 +1,6 @@
 services:
   postgresql-master:
-    image: bitnami/postgresql:16
+    image: bitnami/postgresql:latest
     ports: ["5432:5432"]
     volumes:
       - postgresql_master_data:/bitnami/postgresql
@@ -22,7 +22,7 @@ services:
       retries: 30
 
   postgresql-slave:
-    image: bitnami/postgresql:16
+    image: bitnami/postgresql:latest
     ports: ["5433:5432"]
     depends_on:
       postgresql-master:
@@ -50,11 +50,3 @@ services:
 volumes:
   postgresql_master_data:
   postgresql_slave_data:
-
-# PGPASSWORD= psql -h 127.0.0.1 -p 5432 -U postgres -d my_database
-# SELECT pg_is_in_recovery(); 
-# SELECT pid, client_addr, state, sync_state, sent_lsn, write_lsn, flush_lsn, replay_lsn FROM pg_stat_replication;
-
-# PGPASSWORD= psql -h 127.0.0.1 -p 5433 -U postgres -d my_database
-# SELECT pg_is_in_recovery(); 
-# SELECT pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp();
